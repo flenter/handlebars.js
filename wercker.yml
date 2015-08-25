@@ -1,0 +1,33 @@
+box: nodesource/trusty
+build:
+    steps:
+        - script:
+            code: export
+        - npm-install
+        - npm-install:
+            options: grunt-cli
+        - grunt:
+            tasks: clean build release
+        - script:
+            name: create output.tar
+            code: |
+                rm -rf node_modules
+                rm -rf temp
+                tar cvzf $WERCKER_OUTPUT_DIR/release.tgz .
+                cp package.json $WERCKER_OUTPUT_DIR
+deploy:
+    steps:
+        - script:
+            name: get APP_VERSION
+            code: |
+                APP_VERSION=`node -e "fs = require('fs')
+                json = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+                console.log(json.version);"`
+        - github-create-release:
+            token: $GITHUB_TOKEN
+            tag: $APP_VERSION
+            title: handlebar.js $APP_VERSION
+        - github-upload-asset:
+            token: $GITHUB_TOKEN
+            file: release.tgz
+            filename: handlebar-js.$APP_VERSION.tgz
